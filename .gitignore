@@ -1,4 +1,5 @@
-/.DS_Store
-/.vagrant
-/.vscode
-/udacity.code-workspace
+.DS_Store
+.vagrant
+.vscode
+udacity.code-workspace
+__pycache__
