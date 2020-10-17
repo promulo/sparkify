@@ -75,7 +75,7 @@ INSERT INTO songplays (start_time, user_id, level, song_id, artist_id, session_i
 user_table_insert = """
 INSERT INTO users (id, first_name, last_name, gender, level)
     VALUES (%s, %s, %s, %s, %s)
-    ON CONFLICT (id) DO NOTHING
+    ON CONFLICT (id) DO UPDATE SET level = EXCLUDED.level
 """
 
 song_table_insert = """
