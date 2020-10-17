@@ -151,8 +151,8 @@ and is currently working from the `data_modelling_pg` directory.
 1. Create a virtual environment
 
 ```
-$ python3 -m venv venv
-$ source ./venv/bin/activate
+$ python3 -m venv .venv
+$ source .venv/bin/activate
 ```
 
 2. Install Python runtime dependencies
