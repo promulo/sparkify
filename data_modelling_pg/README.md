@@ -18,7 +18,7 @@ relational approach.
 ## The Model
 
 The ETL script processes the raw data files and loads the processed data
-into five tables which forms the data model. The model consists of one
+into five tables which form the data model. The model consists of one
 fact table and four dimension tables. All tables are detailed in the next
 sections.
 
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS songplays (
 
 ### Dimension table: `songs`
 
-This dimension table holds data about songs that were streamed through Sparkify.
+This dimension table holds data about songs available on Sparkify's catalog.
 
 ```sql
 CREATE TABLE IF NOT EXISTS songs (
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 ### Dimension table: `time`
 
-This dimension table keeps track of timestamp information of songplay events.
+This dimension table keeps track of timestamp information from songplay events.
 
 ```sql
 CREATE TABLE IF NOT EXISTS time (
@@ -125,8 +125,8 @@ data_modelling_pg/
 
 ## ETL pipeline usage
 
-The ETL pipeline processes the raw data and populate the abovementioned tables.
-The raw data consists of several JSON-based files placed in the `data` directory.
+The ETL pipeline processes the raw data and populates the abovementioned tables.
+The raw data consist of several JSON-based files placed in the `data` directory.
 Two types of files are handled by the `etl.py` script: **log data** files containing
 songplay events and **song data** files containing individual songs information.
 
@@ -139,14 +139,14 @@ It is recommended the use of Python's `virtualenv` module for ensuring runtime i
 In Debian-based systems, it might be necessary to install the additional
 `python3-virtualenv` package (requires root access). System administration assistance
 may be required if the target system is not Debian-based or the user has not enough
-privileges to install system packages.
+privileges to install packages.
 
 ### `etl.py` script usage
 
-The ETL processing happens via the `etl.py` script. In order to make use of it, some
+The ETL processing happens in the `etl.py` script. In order to make use of it, some
 required steps are necessary beforehand. The following assumes the use of Python
-virtual environments. It is also assumed that the user is using a terminal and
-currently in the `data_modelling_pg` directory.
+virtual environments. It is also assumed that the user is using a Unix-like terminal 
+and is currently working from the `data_modelling_pg` directory.
 
 1. Create a virtual environment
 
