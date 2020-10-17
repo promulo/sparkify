@@ -11,6 +11,14 @@ from sql_queries import (artist_table_insert, song_select, song_table_insert,
 
 
 def process_song_file(cur, filepath):
+    """
+    Processes Sparkify's raw song data files, which are JSON-based files
+    holding information regarding individual songs from their catalog.
+
+    Parameters:
+    cur: PostgreSQL DB connection cursor
+    filepath: Path of data file to be processed
+    """
     df = pd.read_json(filepath, lines=True)
 
     song_data = df[
@@ -37,6 +45,14 @@ def process_song_file(cur, filepath):
 
 
 def process_log_file(cur, filepath):
+    """
+    Processes Sparkify's raw log data files, which are JSON-based files
+    holding information about songplay events from Sparkify's music app.
+
+    Parameters:
+    cur: PostgreSQL DB connection cursor
+    filepath: Path of data file to be processed
+    """
     df = pd.read_json(filepath, lines=True)
     df = df[df['page'] == 'NextSong']
 
@@ -84,6 +100,16 @@ def process_log_file(cur, filepath):
 
 
 def process_data(cur, conn, filepath, func):
+    """
+    Prepares raw data files to be processed by the specialized function
+    passed as parameter.
+
+    Parameters:
+    cur: PostgreSQL DB connection cursor
+    conn: PostgreSQL connection wrapper
+    filepath: Path of directory containing raw data files
+    func: Specialized data processing function for this type of data file
+    """
     all_files = []
     for root, _, files in os.walk(filepath):
         files = Path(root).glob('*.json')
@@ -100,6 +126,10 @@ def process_data(cur, conn, filepath, func):
 
 
 def main():
+    """
+    Initializes DB server connection and creates database tables.
+    Calls process_data for both data directories: song_data and log_data.
+    """
     conn = psycopg2.connect('host=127.0.0.1 dbname=sparkifydb user=student password=student')
     cur = conn.cursor()
 
