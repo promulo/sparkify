@@ -103,15 +103,15 @@ CREATE TABLE IF NOT EXISTS time (
 
 The ETL pipeline processes the raw data and populate the abovementioned tables.
 The raw data consists of several JSON-based files placed in the `data` directory.
-Two types of files are handled by the `etl.py` script: *log data* files containing
-songplay events and *song data* files containing individual songs information.
+Two types of files are handled by the `etl.py` script: **log data** files containing
+songplay events and **song data** files containing individual songs information.
 
 ### Requirements
 
 - Python 3.7 or above
 - PostgreSQL 12
 
-It is recommended the use of Python's `virtualenv` module for insuring runtime isolation.
+It is recommended the use of Python's `virtualenv` module for ensuring runtime isolation.
 In Debian-based systems, it might be necessary to install the additional
 `python3-virtualenv` package (requires root access). System administration assistance
 may be required if the target system is not Debian-based or the user has not enough
