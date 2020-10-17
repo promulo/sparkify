@@ -63,8 +63,12 @@ def process_log_file(cur, filepath):
         cur.execute(user_table_insert, row[1:])
 
     for row in df.itertuples():
-        results = cur.execute(song_select, (row.song, row.artist, row.length))
-        song_id, artist_id = results if results else None, None
+        cur.execute(song_select, (row.song, row.artist, row.length))
+        results = cur.fetchone()
+        if results:
+            song_id, artist_id = results
+        else:
+            song_id = artist_id = None
 
         songplay_data = (
             pd.to_datetime(row.ts, unit='ms'),
