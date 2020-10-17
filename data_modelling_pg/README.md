@@ -99,6 +99,30 @@ CREATE TABLE IF NOT EXISTS time (
 )
 ```
 
+## Directory structure
+
+This project consists of the files listed below.
+
+```
+data_modelling_pg/
+├── README.md
+├── create_tables.py
+├── data
+├── etl.ipynb
+├── etl.py
+├── requirements.txt
+├── sql_queries.py
+└── test.ipynb
+```
+* `README.md`: This README file
+* `create_tables.py`: Python script used for creating/resetting the database used by the ETL process
+* `data`: Directory containing the raw data JSON-based files
+* `etl.ipynb`: Jupyter notebook used as a prototype for the ETL process
+* `etl.py`: Python script consisting of the ETL pipeline
+* `requirements.txt`: Runtime dependencies listing to be used by `pip` (PyPI)
+* `sql_queries.py`: Python file containing all the SQL queries used by the other Python scripts
+* `test.ipynb`: Jupyter notebook used for checking state of database tables during testing
+
 ## ETL pipeline usage
 
 The ETL pipeline processes the raw data and populate the abovementioned tables.
