@@ -189,7 +189,7 @@ privileges to install packages.
 The ETL processing happens in the `etl.py` script. In order to make use of it, some
 required steps are necessary beforehand. The following assumes the use of Python
 virtual environments. It is also assumed that the user is using a Unix-like terminal
-and is currently working from the `data_modelling_pg` directory.
+and is currently working from the `data_warehouse_redshift` directory.
 
 1. Create a virtual environment
 
