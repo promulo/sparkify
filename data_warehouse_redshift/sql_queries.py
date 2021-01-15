@@ -43,16 +43,15 @@ CREATE TABLE IF NOT EXISTS staging_events (
 
 staging_songs_table_create = """
 CREATE TABLE IF NOT EXISTS staging_songs (
-    id BIGINT IDENTITY(0,1) PRIMARY KEY,
-    num_songs INT,
     artist_id TEXT,
     artist_latitude FLOAT,
-    artist_longitude FLOAT,
     artist_location TEXT,
+    artist_longitude FLOAT,
     artist_name TEXT,
+    duration FLOAT,
+    num_songs INT,
     song_id TEXT,
     title TEXT,
-    duration FLOAT,
     year INT
 )
 """
@@ -60,32 +59,32 @@ CREATE TABLE IF NOT EXISTS staging_songs (
 songplay_table_create = """
 CREATE TABLE IF NOT EXISTS songplays (
     id BIGINT IDENTITY(0,1) PRIMARY KEY,
-    start_time TIMESTAMP NOT NULL,
-    user_id INT NOT NULL,
-    level VARCHAR NOT NULL,
-    song_id VARCHAR,
-    artist_id VARCHAR,
+    start_time TIMESTAMP NOT NULL SORTKEY,
+    user_id TEXT NOT NULL,
+    level TEXT NOT NULL,
+    song_id TEXT DISTKEY,
+    artist_id TEXT,
     session_id INT NOT NULL,
-    location VARCHAR NOT NULL,
+    location TEXT NOT NULL,
     user_agent TEXT NOT NULL
 )
 """
 
 user_table_create = """
 CREATE TABLE IF NOT EXISTS users (
-    id INT PRIMARY KEY,
-    first_name VARCHAR NOT NULL,
-    last_name VARCHAR NOT NULL,
+    id TEXT PRIMARY KEY,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
     gender VARCHAR(1) NOT NULL,
-    level VARCHAR NOT NULL
+    level TEXT NOT NULL
 )
 """
 
 song_table_create = """
 CREATE TABLE IF NOT EXISTS songs (
-    id VARCHAR PRIMARY KEY,
-    title VARCHAR NOT NULL,
-    artist_id VARCHAR NOT NULL,
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    artist_id TEXT NOT NULL,
     year INT NOT NULL,
     duration FLOAT NOT NULL
 )
@@ -93,9 +92,9 @@ CREATE TABLE IF NOT EXISTS songs (
 
 artist_table_create = """
 CREATE TABLE IF NOT EXISTS artists (
-    id VARCHAR PRIMARY KEY,
-    name VARCHAR NOT NULL,
-    location VARCHAR NOT NULL,
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    location TEXT NOT NULL,
     latitude FLOAT,
     longitude FLOAT
 )
@@ -118,50 +117,95 @@ CREATE TABLE IF NOT EXISTS time (
 staging_events_copy = f"""
 COPY staging_events FROM '{config.get("S3", "LOG_DATA")}'
 CREDENTIALS 'aws_iam_role={config.get("IAM_ROLE", "ARN")}'
-COMPUPDATE OFF REGION 'eu-central-1';
+COMPUPDATE OFF REGION 'us-west-2'
+JSON '{config.get("S3", "LOG_JSONPATH")}'
 """
 
 staging_songs_copy = f"""
 COPY staging_songs FROM '{config.get("S3", "SONG_DATA")}'
 CREDENTIALS 'aws_iam_role={config.get("IAM_ROLE", "ARN")}'
-COMPUPDATE OFF REGION 'eu-central-1';
+COMPUPDATE OFF REGION 'us-west-2'
+JSON 'auto'
 """
 
 # FINAL TABLES
 
 songplay_table_insert = """
 INSERT INTO songplays (start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    ON CONFLICT (id) DO NOTHING
+    SELECT timestamp 'epoch' + (ts / 1000) * interval '1 second', user_id, level, song_id, artist_id, session_id, location, user_agent
+    FROM staging_events se, staging_songs ss
+    WHERE se.artist = ss.artist_name AND se.page = 'NextSong'
 """
 
 user_table_insert = """
 INSERT INTO users (id, first_name, last_name, gender, level)
-    VALUES (%s, %s, %s, %s, %s)
-    ON CONFLICT (id) DO UPDATE SET level = EXCLUDED.level
+    SELECT DISTINCT user_id, first_name, last_name, gender, level
+    FROM staging_events
+    WHERE page = 'NextSong' AND user_id NOT IN (SELECT id FROM users)
 """
 
 song_table_insert = """
 INSERT INTO songs (id, title, artist_id, year, duration)
-    VALUES (%s, %s, %s, %s, %s)
-    ON CONFLICT (id) DO NOTHING
+    SELECT DISTINCT song_id, title, artist_id, year, duration
+    FROM staging_songs
+    WHERE song_id NOT IN (SELECT id FROM songs)
 """
 
 artist_table_insert = """
 INSERT INTO artists (id, name, location, latitude, longitude)
-    VALUES (%s, %s, %s, %s, %s)
-    ON CONFLICT (id) DO NOTHING
+    SELECT DISTINCT artist_id, artist_name, artist_location, artist_latitude, artist_longitude
+    FROM staging_songs
+    WHERE artist_id NOT IN (SELECT id FROM artists)
 """
 
 time_table_insert = """
 INSERT INTO time (timestamp, hour, day, week, month, year, weekday)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)
-    ON CONFLICT (timestamp) DO NOTHING
+    WITH parsed_ts AS (
+        SELECT ts, timestamp 'epoch' + (ts / 1000) * interval '1 second' AS parsed
+        FROM staging_events
+        WHERE page = 'NextSong'
+    )
+    SELECT ts,
+           EXTRACT(HOUR FROM parsed),
+           EXTRACT(DAY FROM parsed),
+           EXTRACT(WEEK FROM parsed),
+           EXTRACT(MONTH FROM parsed),
+           EXTRACT(YEAR FROM parsed),
+           EXTRACT(WEEKDAY FROM parsed)
+    FROM parsed_ts
 """
 
 # QUERY LISTS
 
-create_table_queries = [staging_events_table_create, staging_songs_table_create, songplay_table_create, user_table_create, song_table_create, artist_table_create, time_table_create]
-drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
-copy_table_queries = [staging_events_copy, staging_songs_copy]
-insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
+create_table_queries = [
+    staging_events_table_create,
+    staging_songs_table_create,
+    songplay_table_create,
+    user_table_create,
+    song_table_create,
+    artist_table_create,
+    time_table_create
+]
+
+drop_table_queries = [
+    staging_events_table_drop,
+    staging_songs_table_drop,
+    songplay_table_drop,
+    user_table_drop,
+    song_table_drop,
+    artist_table_drop,
+    time_table_drop
+]
+
+copy_table_queries = [
+    staging_events_copy,
+    staging_songs_copy
+]
+
+insert_table_queries = [
+    songplay_table_insert,
+    user_table_insert,
+    song_table_insert,
+    artist_table_insert,
+    time_table_insert
+]

@@ -9,18 +9,66 @@ drive business decisions, Sparkify recently started to collect all
 sorts of user activity data which should fuel several planned data
 analysis and machine learning pipelines.
 
-This project focuses on modelling and processing of song play activity
+This project focuses performing some data warehousing of song play activity
 data based on raw datasets (JSON-based) gathered by Sparkify's backend.
 That is done by an ETL pipeline written in Python. The DBMS of choice is
-PostgreSQL 12, which means the data was modelled using a traditional
-relational approach.
+Amazon Redshift.
 
 ## The Model
 
-The ETL script processes the raw data files and loads the processed data
-into five tables which form the data model. The model consists of one
-fact table and four dimension tables. All tables are detailed in the next
-sections.
+The ETL process starts by loading the raw data files from S3 into
+two Redshift staging tables. After the initial load is complete, the
+script further processes the data by inserting it into five tables
+which form the final data model. The model consists of one fact table
+and four dimension tables. All tables are detailed in the next sections.
+
+### Staging table: `staging_events`
+
+This intermediate table consists of the initial load of raw event data files
+stored in S3.
+
+```sql
+CREATE TABLE IF NOT EXISTS staging_events (
+    id BIGINT IDENTITY(0,1) PRIMARY KEY,
+    artist TEXT,
+    auth TEXT,
+    first_name TEXT,
+    gender VARCHAR(1),
+    item_in_session INT,
+    last_name TEXT,
+    length FLOAT,
+    level TEXT,
+    location TEXT,
+    method TEXT,
+    page TEXT,
+    registration BIGINT,
+    session_id INT,
+    song TEXT,
+    status INT,
+    ts BIGINT,
+    user_agent TEXT,
+    user_id TEXT
+)
+```
+
+### Staging table: `staging_songs`
+
+This table is used as staging storage for individual song data stored in S3.
+
+```sql
+CREATE TABLE IF NOT EXISTS staging_songs (
+    artist_id TEXT,
+    artist_latitude FLOAT,
+    artist_location TEXT,
+    artist_longitude FLOAT,
+    artist_name TEXT,
+    duration FLOAT,
+    num_songs INT,
+    song_id TEXT,
+    title TEXT,
+    year INT
+)
+```
 
 ### Fact table: `songplays`
 
@@ -29,15 +77,15 @@ music app.
 
 ```sql
 CREATE TABLE IF NOT EXISTS songplays (
-    id SERIAL PRIMARY KEY,
-    start_time timestamp NOT NULL,
-    user_id int NOT NULL,
-    level varchar NOT NULL,
-    song_id varchar,
-    artist_id varchar,
-    session_id int NOT NULL,
-    location varchar NOT NULL,
-    user_agent text NOT NULL
+    id BIGINT IDENTITY(0,1) PRIMARY KEY,
+    start_time TIMESTAMP NOT NULL SORTKEY,
+    user_id TEXT NOT NULL,
+    level TEXT NOT NULL,
+    song_id TEXT DISTKEY,
+    artist_id TEXT,
+    session_id INT NOT NULL,
+    location TEXT NOT NULL,
+    user_agent TEXT NOT NULL
 )
 ```
 
@@ -47,11 +95,11 @@ This dimension table holds data about songs available on Sparkify's catalog.
 
 ```sql
 CREATE TABLE IF NOT EXISTS songs (
-    id varchar PRIMARY KEY,
-    title varchar NOT NULL,
-    artist_id varchar NOT NULL,
-    year int NOT NULL,
-    duration float NOT NULL
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    artist_id TEXT NOT NULL,
+    year INT NOT NULL,
+    duration FLOAT NOT NULL
 )
 ```
 
@@ -61,11 +109,11 @@ This dimension table holds data about artists availble on Sparkify's catalog.
 
 ```sql
 CREATE TABLE IF NOT EXISTS artists (
-    id varchar PRIMARY KEY,
-    name varchar NOT NULL,
-    location varchar NOT NULL,
-    latitude float,
-    longitude float
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    location TEXT NOT NULL,
+    latitude FLOAT,
+    longitude FLOAT
 )
 ```
 
@@ -75,11 +123,11 @@ This dimension table holds data about users of Sparkify's music app.
 
 ```sql
 CREATE TABLE IF NOT EXISTS users (
-    id int PRIMARY KEY,
-    first_name varchar NOT NULL,
-    last_name varchar NOT NULL,
-    gender varchar(1) NOT NULL,
-    level varchar NOT NULL
+    id TEXT PRIMARY KEY,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    gender VARCHAR(1) NOT NULL,
+    level TEXT NOT NULL
 )
 ```
 
@@ -89,13 +137,13 @@ This dimension table keeps track of timestamp information from songplay events.
 
 ```sql
 CREATE TABLE IF NOT EXISTS time (
-    timestamp bigint PRIMARY KEY,
-    hour int NOT NULL,
-    day int NOT NULL,
-    week int NOT NULL,
-    month int NOT NULL,
-    year int NOT NULL,
-    weekday int NOT NULL
+    timestamp BIGINT PRIMARY KEY,
+    hour INT NOT NULL,
+    day INT NOT NULL,
+    week INT NOT NULL,
+    month INT NOT NULL,
+    year INT NOT NULL,
+    weekday INT NOT NULL
 )
 ```
 
@@ -104,36 +152,31 @@ CREATE TABLE IF NOT EXISTS time (
 This project consists of the files listed below.
 
 ```
-data_modelling_pg/
+data_warehouse_redshift/
 ├── README.md
 ├── create_tables.py
-├── data
-├── etl.ipynb
+├── dwh.cfg
 ├── etl.py
 ├── requirements.txt
 ├── sql_queries.py
-└── test.ipynb
 ```
 * `README.md`: This README file
 * `create_tables.py`: Python script used for creating/resetting the database used by the ETL process
-* `data`: Directory containing the raw data JSON-based files
-* `etl.ipynb`: Jupyter notebook used as a prototype for the ETL process
+* `dwh.cfg`: Configuration file supporting AWS Redshift and S3 access
 * `etl.py`: Python script consisting of the ETL pipeline
 * `requirements.txt`: Runtime dependencies listing to be used by `pip` (PyPI)
 * `sql_queries.py`: Python file containing all the SQL queries used by the other Python scripts
-* `test.ipynb`: Jupyter notebook used for checking state of database tables during testing
 
 ## ETL pipeline usage
 
-The ETL pipeline processes the raw data and populates the abovementioned tables.
-The raw data consist of several JSON-based files placed in the `data` directory.
-Two types of files are handled by the `etl.py` script: **log data** files containing
-songplay events and **song data** files containing individual songs information.
+The ETL pipeline processes the raw data stored in S3 and populates the abovementioned tables.
+The raw data consist of several JSON-based files placed in the S3 bucket.
 
 ### Requirements
 
 - Python 3.7 or above
-- PostgreSQL 12
+- psycopg2
+- AWS Redshift cluster up and running (see `dwh.cfg`)
 
 It is recommended the use of Python's `virtualenv` module for ensuring runtime isolation.
 In Debian-based systems, it might be necessary to install the additional
@@ -164,7 +207,7 @@ $ pip install -r requirements.txt
 If a virtual environment is not used, the above command will require either root
 access or the use of the `--user` flag.
 
-3. Create `sparkifydb` database and tables via the `create_tables.py` script
+3. Create/reset tables via the `create_tables.py` script
 
 ```
 $ python create_tables.py
@@ -176,5 +219,7 @@ $ python create_tables.py
 $ python etl.py
 ```
 
-The script outputs the amount of processed files. After it finishes execution, the
-tables will be populated.
+The script does not produce any output unless there is an error. The initial load can
+take a long time to finish depending on the amount of data to be loaded (that is limited
+in the configuration file in order to avoid query timeout). After it finishes execution,
+the tables will be populated in the Redshift cluster.
