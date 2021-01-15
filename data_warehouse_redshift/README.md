@@ -1,4 +1,4 @@
-# Sparkify - Relational Data Model
+# Sparkify - Data Warehousing with Amazon Redshift
 
 ## Introduction
 
