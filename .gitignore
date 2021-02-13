@@ -2,4 +2,5 @@
 .vagrant
 .vscode
 *.code-workspace
+*.pem
 __pycache__
