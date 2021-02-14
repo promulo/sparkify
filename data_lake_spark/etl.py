@@ -56,11 +56,9 @@ def process_song_data(spark, input_data, output_data):
 
 
 def process_log_data(spark, input_data, output_data):
-    log_data = f"{input_data}/log_data/*/*"
-
-    df = spark.read.json(log_data)
-
+    df = spark.read.json(f"{input_data}/log_data/*/*")
     df = df.filter(df.page == "NextSong")
+
     df.createOrReplaceTempView("logs_nextsong")
 
     users_table = spark.sql("""
