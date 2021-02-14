@@ -17,6 +17,8 @@ users are listening to.
 
 ## The Model
 
+![parquet files](./tables.png)
+
 The ETL process starts by loading the raw data files from S3 into
 an EMR cluster running Spark. After the initial load is complete, the
 script does some data wrangling using PySpark and generates five parquet-based
