@@ -1,4 +1,3 @@
-import os
 from datetime import datetime, timedelta
 
 from airflow import DAG
@@ -7,38 +6,23 @@ from airflow.operators import (DataQualityOperator, LoadDimensionOperator,
 from airflow.operators.dummy_operator import DummyOperator
 from helpers import SqlQueries
 
-# AWS_KEY = os.environ.get('AWS_KEY')
-# AWS_SECRET = os.environ.get('AWS_SECRET')
-
 default_args = {
     'owner': 'paulo',
     'depends_on_past': False,
     'email': ['paulo@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
-    # 'retries': 1,
-    # 'retry_delay': timedelta(minutes=5),
-    # 'queue': 'bash_queue',
-    # 'pool': 'backfill',
-    # 'priority_weight': 10,
-    # 'end_date': datetime(2016, 1, 1),
-    # 'wait_for_downstream': False,
-    # 'dag': dag,
-    # 'sla': timedelta(hours=2),
-    # 'execution_timeout': timedelta(seconds=300),
-    # 'on_failure_callback': some_function,
-    # 'on_success_callback': some_other_function,
-    # 'on_retry_callback': another_function,
-    # 'sla_miss_callback': yet_another_function,
-    # 'trigger_rule': 'all_success'
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5)
 }
 
 dag = DAG(
     'sparkify',
     default_args=default_args,
-    description='Load and transform data in Redshift with Airflow',
+    description='Load and transform Sparkify data in Redshift with Airflow',
     start_date=datetime.utcnow(),
-    schedule_interval='0 * * * *'
+    schedule_interval='@daily',
+    catchup=False
 )
 
 start_operator = DummyOperator(task_id='Begin_execution', dag=dag)
@@ -104,7 +88,15 @@ load_time_dimension_table = LoadDimensionOperator(
 
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
-    dag=dag
+    dag=dag,
+    redshift_conn_id='redshift',
+    checks=[
+        (SqlQueries.check_songplays, 0),
+        (SqlQueries.check_songs, 0),
+        (SqlQueries.check_artists, 0),
+        (SqlQueries.check_users, 0),
+        (SqlQueries.check_time, 0)
+    ]
 )
 
 end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
