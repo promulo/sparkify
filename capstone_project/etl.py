@@ -108,8 +108,8 @@ def process_ports_raw_data(spark, input_data, output_data):
         "UT", "VT", "VA", "WA", "WV", "WI", "WY"
     )
 
-    df_ports = spark.read.csv(f"{input_data}/i94_ports_all.csv", header=True).dropna()
-    df_ports.createOrReplaceTempView("ports_raw")
+    df = spark.read.csv(f"{input_data}/i94_ports_all.csv", header=True).dropna()
+    df.createOrReplaceTempView("ports_raw")
 
     ports_of_entry_table = spark.sql(f"""
         SELECT DISTINCT i94_port_code AS code, i94_port_name AS name, i94_port_state AS state
