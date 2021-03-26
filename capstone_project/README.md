@@ -20,7 +20,7 @@ get insights regarding immigration in the United States.
 
 ## The Model
 
-![parquet files](./tables.png)
+<img src="./tables.png" width="400" height="526.15">
 
 The ETL process starts by loading the raw data files from S3 into
 an EMR cluster running Spark. After the initial load is complete, the
