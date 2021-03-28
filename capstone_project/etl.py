@@ -14,6 +14,9 @@ os.environ['AWS_SECRET_ACCESS_KEY'] = config.get("aws", "AWS_SECRET_ACCESS_KEY")
 
 
 def create_spark_session():
+    """
+    Initializes the SparkSession object to be used by the ETL processes
+    """
     spark = SparkSession \
         .builder \
         .config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11") \
@@ -23,6 +26,9 @@ def create_spark_session():
 
 @udf(IntegerType())
 def get_date_part(date_delta, key):
+    """
+    PySpark udf for getting parts from a date delta in days from 01/01/1960
+    """
     date = datetime(year=1960, month=1, day=1) + timedelta(days=int(date_delta))
     parts = {
         "day": date.day,
@@ -34,6 +40,9 @@ def get_date_part(date_delta, key):
 
 
 def process_i94_log_data(spark, input_data, output_data):
+    """
+    Loads and processes the I94 immigration raw data (SAS-based)
+    """
     df = spark \
         .read \
         .format("com.github.saurfang.sas.spark") \
@@ -100,6 +109,9 @@ def process_i94_log_data(spark, input_data, output_data):
 
 
 def process_ports_raw_data(spark, input_data, output_data):
+    """
+    Loads and processes the ports of entry raw data (CSV-based)
+    """
     US_STATES = (
         "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
         "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA",
@@ -123,6 +135,9 @@ def process_ports_raw_data(spark, input_data, output_data):
 
 
 def process_countries_raw_data(spark, input_data, output_data):
+    """
+    Loads and processes the countries raw data (CSV-based)
+    """
     df = spark.read.csv(f"{input_data}/i94_countries_all.csv", header=True).dropna()
 
     df = df.where(
@@ -146,7 +161,22 @@ def process_countries_raw_data(spark, input_data, output_data):
         .parquet(f"{output_data}/countries.parquet")
 
 
+def run_data_quality_checks(spark, output_data):
+    """
+    Loads data from the created parquet-based files and performs
+    some basic data quality checks
+    """
+    ports = spark.read.parquet(f"{output_data}/ports_of_entry.parquet")
+    assert ports.where(ports.code.isNull()).count() == 0
+
+    arrivals = spark.read.parquet(f"{output_data}/arrivals.parquet")
+    assert arrivals.where(arrivals.person_id.isNull()).count() == 0
+
+
 def main():
+    """
+    Defines the data input and output paths and triggers the ETL process
+    """
     spark = create_spark_session()
 
     input_data = "s3a://paulo-dend/capstone/data"
@@ -155,6 +185,8 @@ def main():
     process_countries_raw_data(spark, input_data, output_data)
     process_ports_raw_data(spark, input_data, output_data)
     process_i94_log_data(spark, input_data, output_data)
+
+    run_data_quality_checks(spark, output_data)
 
 
 if __name__ == "__main__":
