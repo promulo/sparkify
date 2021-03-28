@@ -15,7 +15,7 @@ This project focuses on building an ETL pipeline that loads
 raw immigration data from S3, processes them using Spark,
 and save the processed data back into S3 using the star schema
 paradigm with a fact table and several dimension tables.
-This will allow further analytics activities in order to continue
+This will allow further analytics activities in order to
 get insights regarding immigration in the United States.
 
 The tools of choice for this project are AWS S3, Amazon EMR and
@@ -33,10 +33,10 @@ immigration log data for April 2016. It consists of a `sas7bdat` file
 with more than 3 million rows. The second datased is a list of all
 ports of entry (derived from the provided label description SAS file)
 with their respective names and states. The third dataset is a list of
-all world countries with their I94 codes that are referenced in tha main
+all world countries with their I94 codes that are referenced in the main
 dataset (derived from the provided label description SAS file).
 
-All datasets were loaded from a S3 bucket created for the project.
+All datasets were loaded into an S3 bucket created for the project.
 
 <img src="./images/data.png" width="600" height="290.82">
 
